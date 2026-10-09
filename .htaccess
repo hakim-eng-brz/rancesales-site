@@ -1,0 +1,39 @@
+Options -Indexes
+DirectoryIndex index.html index.php
+ErrorDocument 404 /404.html
+AddDefaultCharset UTF-8
+
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+# Anciennes adresses du site Website Builder
+RewriteRule ^httpsrancesalescomindustrial-paper-supply-and-packaging-products/?$ /produits/ [L,R=301]
+RewriteRule ^httpsrancesalescomindustrial-paper-packaging/?$ /produits/ [L,R=301]
+RewriteRule ^httpsrancesalescompackaging/?$ /contact/ [L,R=301]
+RewriteRule ^industries/?$ /produits/ [L,R=301]
+
+# Fichiers du dépôt à ne pas servir
+RedirectMatch 404 /\.git
+RedirectMatch 404 ^/(README\.md|LICENSE)$
+RedirectMatch 404 ^/src/
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+<IfModule mod_deflate.c>
+AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml text/plain application/xml
+</IfModule>
+
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType text/css "access plus 1 month"
+ExpiresByType application/javascript "access plus 1 month"
+ExpiresByType image/svg+xml "access plus 1 month"
+ExpiresByType image/png "access plus 1 month"
+</IfModule>
