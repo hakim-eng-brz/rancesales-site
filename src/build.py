@@ -1,5 +1,6 @@
 """Génère le site statique Rance Sales dans le dossier de sortie : python3 build.py <out>"""
 import os, sys, json, shutil, html
+from urllib.parse import quote
 from content import *
 
 OUT = sys.argv[1]
@@ -30,6 +31,7 @@ ICONS = {
  "clock":'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
  "pin":'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
  "in":'<path d="M4 9h3v11H4zM5.5 4a1.6 1.6 0 1 1 0 3.2a1.6 1.6 0 0 1 0-3.2zM10 9h3v1.6c.5-.9 1.7-1.8 3.4-1.8 3 0 3.6 2 3.6 4.6V20h-3v-5.6c0-1.3 0-3-1.8-3s-2.2 1.4-2.2 2.9V20h-3z"/>',
+ "wa":'<path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.08-.3-.15-1.26-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.7.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.42.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35M12.05 21.8h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.89 9.88m8.41-18.3A11.8 11.8 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.69 1.45h.01c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.16-3.48-8.41"/>',
  "globe":'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
 }
 def icon(n, cls="ico"): return f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICONS[n]}</svg>'
@@ -58,6 +60,11 @@ def route_map(l):
 <img src="/assets/world.svg" alt="" width="{WORLD["W"]}" height="{WORLD["H"]}" decoding="async">
 <svg class="map-overlay" viewBox="0 0 {WORLD["W"]} {WORLD["H"]}" role="presentation">{"".join(r)}{"".join(dots)}{"".join(ends)}{origin}</svg>
 </figure>'''
+
+def wa_href(l): return WA + "?text=" + quote(WA_MSG[l])
+
+def wa_link(l, cls):
+  return f'<a class="{cls}" href="{wa_href(l)}" target="_blank" rel="noopener">{icon("wa","bi fill")} {"Écrire sur WhatsApp" if l=="fr" else "Message us on WhatsApp"}</a>'
 
 def btn(href, label, cls="btn", ico="arrow"):
   return f'<a class="{cls}" href="{href}"><span>{E(label)}</span>{icon(ico,"bi")}</a>'
@@ -120,10 +127,10 @@ def cta_band(l):
   if l=="fr":
     return f'''<section class="cta-band"><div class="wrap cta-in" data-reveal>
 <div><h2>Parlons de votre prochain approvisionnement</h2><p>Indiquez-nous la qualité, le volume et le pays de livraison. Nous vous répondons avec une offre adaptée.</p></div>
-<div class="cta-actions">{btn(href,"Demander un devis","btn accent")}<a class="cta-tel" href="tel:{TEL}">{icon("phone","bi")} {TEL_H}</a></div></div></section>'''
+<div class="cta-actions">{btn(href,"Demander un devis","btn accent")}<a class="cta-tel" href="tel:{TEL}">{icon("phone","bi")} {TEL_H}</a>{wa_link(l,"cta-tel")}</div></div></section>'''
   return f'''<section class="cta-band"><div class="wrap cta-in" data-reveal>
 <div><h2>Let's talk about your next supply</h2><p>Tell us the grade, volume and delivery country. We will reply with a tailored offer.</p></div>
-<div class="cta-actions">{btn(href,"Request a quote","btn accent")}<a class="cta-tel" href="tel:{TEL}">{icon("phone","bi")} {TEL_H}</a></div></div></section>'''
+<div class="cta-actions">{btn(href,"Request a quote","btn accent")}<a class="cta-tel" href="tel:{TEL}">{icon("phone","bi")} {TEL_H}</a>{wa_link(l,"cta-tel")}</div></div></section>'''
 
 
 # ---------- pages ----------
@@ -230,6 +237,7 @@ def p_contact(l):
 <ul class="clist">
 <li>{icon("mail","ico")}<div><span>E-mail</span><a href="mailto:{EMAIL}">{EMAIL}</a></div></li>
 <li>{icon("phone","ico")}<div><span>{L("Téléphone","Phone")}</span><a href="tel:{TEL}">{TEL_H}</a></div></li>
+<li>{icon("wa","ico fill")}<div><span>WhatsApp</span><a href="{wa_href(l)}" target="_blank" rel="noopener">{TEL_H}</a></div></li>
 <li>{icon("clock","ico")}<div><span>{L("Horaires","Hours")}</span>{UI[l]["hours"]}</div></li>
 <li>{icon("pin","ico")}<div><span>{L("Siège","Head office")}</span>Rennes, France</div></li>
 <li>{icon("in","ico fill")}<div><span>LinkedIn</span><a href="{LI}" rel="noopener">rance-sales</a></div></li>
@@ -331,9 +339,10 @@ def render(l, key, body, extra_ld):
 <footer class="site-foot"><div class="wrap ft">
 <div class="ft-brand">{LOGO_LIGHT}<p>{ui['foot_tag']}</p></div>
 <div><h2 class="ft-h">{ui['nav_label']}</h2><ul>{mk}</ul></div>
-<div><h2 class="ft-h">Contact</h2><ul><li><a href="mailto:{EMAIL}">{EMAIL}</a></li><li><a href="tel:{TEL}">{TEL_H}</a></li><li>{ui['hours']}</li></ul></div>
+<div><h2 class="ft-h">Contact</h2><ul><li><a href="mailto:{EMAIL}">{EMAIL}</a></li><li><a href="tel:{TEL}">{TEL_H}</a></li><li><a href="{wa_href(l)}" target="_blank" rel="noopener">WhatsApp</a></li><li>{ui['hours']}</li></ul></div>
 <div><h2 class="ft-h">Rance Sales</h2><ul><li><a href="{path('products',l)}">{dict(ui['nav'])['products']}</a></li><li><a href="{LI}" rel="noopener">LinkedIn</a></li><li><a href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_label']}</a></li></ul></div>
 </div><div class="wrap ft-bottom"><p>© 2024–2026 Rance Sales. {ui['rights']}</p></div></footer>
+<a class="wa-float" href="{wa_href(l)}" target="_blank" rel="noopener" aria-label="{"Écrire à Rance Sales sur WhatsApp" if l=="fr" else "Message Rance Sales on WhatsApp"}">{icon("wa","ico fill")}<span class="wa-tip" aria-hidden="true">{"Écrire sur WhatsApp" if l=="fr" else "Chat on WhatsApp"}</span></a>
 <script src="/assets/site.js" defer></script>
 </body>
 </html>

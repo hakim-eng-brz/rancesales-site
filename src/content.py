@@ -1,6 +1,8 @@
 # Contenu du site Rance Sales (FR / EN). Ne contient que des informations confirmées par Rance Sales.
 EMAIL = "commercial@rancesales.com"
 TEL = "+33673767059"; TEL_H = "+33 6 73 76 70 59"
+WA = "https://wa.me/33673767059"  # même numéro, joignable sur WhatsApp
+WA_MSG = {"fr": "Bonjour Rance Sales, je souhaite un devis pour : ", "en": "Hello Rance Sales, I would like a quote for: "}
 LI = "https://www.linkedin.com/company/rance-sales"
 
 # Gammes de papier et carton (grammages en g/m², livrés en bobines et en feuilles).
@@ -82,14 +84,14 @@ HOME_FAQ = {
   ("Travaillez-vous à l'international ?", "Oui. Nos clients sont présents dans le monde entier. Indiquez-nous votre pays de livraison et vos volumes dans la demande de devis."),
   ("Quels produits proposez-vous ?", "Trois gammes, en bobines et en feuilles, de 20 à 1 500 g/m² : papier graphique (offset, couché, LWC, papier journal…), papier d'emballage (kraft, kraftliner, testliner, kraft blanchi, sulfurisé…) et carton (GC1, GC2, GD2, SBS…). Nous proposons aussi des emballages sur mesure, des machines de transformation et un support technique."),
   ("D'où vient votre papier ?", "Nous travaillons avec des papeteries européennes et sélectionnons la qualité adaptée à chaque production."),
-  ("Comment demander un devis ?", f"Via le formulaire de demande de devis, par e-mail à {EMAIL} ou par téléphone au {TEL_H}, du lundi au vendredi de 8 h à 19 h (heure de Paris)."),
+  ("Comment demander un devis ?", f"Via le formulaire de demande de devis, par e-mail à {EMAIL}, par téléphone ou sur WhatsApp au {TEL_H}, du lundi au vendredi de 8 h à 19 h (heure de Paris)."),
   ("Où êtes-vous basés ?", "Rance Sales est une société française basée à Rennes."),
  ],
  "en": [
   ("Do you work internationally?", "Yes. Our customers are located worldwide. Tell us your delivery country and volumes in the quote request."),
   ("What products do you offer?", "Three ranges, in reels and sheets, from 20 to 1,500 g/m²: graphic paper (offset, coated, LWC, newsprint…), packaging paper (kraft, kraftliner, testliner, bleached kraft, greaseproof…) and board (GC1, GC2, GD2, SBS…). We also offer custom packaging, processing machinery and technical support."),
   ("Where does your paper come from?", "We work with European paper mills and select the right grade for each production."),
-  ("How do I request a quote?", f"Use the quote request form, email {EMAIL} or call {TEL_H}, Monday to Friday, 8 am to 7 pm (Paris time)."),
+  ("How do I request a quote?", f"Use the quote request form, email {EMAIL}, or call or WhatsApp {TEL_H}, Monday to Friday, 8 am to 7 pm (Paris time)."),
   ("Where are you based?", "Rance Sales is a French company based in Rennes."),
  ],
 }
