@@ -257,7 +257,9 @@ def p_thanks(l):
 
 def p_legal(l):
   fr = l=="fr"
-  def ph(v): return f'<span class="todo">{E(v)}</span>' if v.startswith("À COMPLÉTER") else E(v)
+  def ph(v):
+    if v.startswith("À COMPLÉTER"): return f'<span class="todo">{E(v)}</span>'
+    return v if v.startswith("<a ") else E(v)
   def rows(items): return "".join(f"<li><strong>{E(k)} :</strong> {ph(v) if isinstance(v,str) else v}</li>" for k,v in items)
   L = LEGAL
   if fr:
