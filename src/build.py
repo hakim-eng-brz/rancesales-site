@@ -14,6 +14,7 @@ PATHS = {
  "about": ("/a-propos/", "/en/about/"),
  "contact": ("/contact/", "/en/contact/"),
  "thanks": ("/merci/", "/en/thanks/"),
+ "legal": ("/mentions-legales/", "/en/legal-notice/"),
 }
 def path(key, l): return PATHS[key][0 if l=="fr" else 1]
 
@@ -254,7 +255,42 @@ def p_thanks(l):
       f'<div class="actions">{btn(path("home",l),"Retour à l\'accueil" if fr else "Back to home","btn accent")}</div>')
   return h, []
 
-PAGES = {"home":p_home,"products":p_products,"about":p_about,"contact":p_contact,"thanks":p_thanks}
+def p_legal(l):
+  fr = l=="fr"
+  def ph(v): return f'<span class="todo">{E(v)}</span>' if v.startswith("À COMPLÉTER") else E(v)
+  def rows(items): return "".join(f"<li><strong>{E(k)} :</strong> {ph(v) if isinstance(v,str) else v}</li>" for k,v in items)
+  L = LEGAL
+  if fr:
+    h = page_head(l, "Informations légales", "Mentions légales", "Identité de l'éditeur, hébergement et utilisation des données du site.")
+    h += f"""<section class="sec"><div class="wrap narrow prose">
+<h2>Éditeur du site</h2>
+<ul>{rows([("Raison sociale","Rance Sales"),("Forme juridique",L["forme"]),("Capital social",L["capital"]),("RCS / SIREN",f'{L["rcs"]} / {L["siren"]}'),("Siège social",L["siege"]),("E-mail",f'<a href="mailto:{EMAIL}">{EMAIL}</a>'),("Téléphone",f'<a href="tel:{TEL}">{TEL_H}</a>'),("Directeur de la publication",L["directeur"])])}</ul>
+<h2>Hébergement</h2>
+<ul>{rows([("Hébergeur",L["hebergeur"]),("Adresse de l'hébergeur",L["hebergeur_adresse"])])}</ul>
+<h2>Propriété intellectuelle</h2>
+<p>L'ensemble du contenu de ce site (textes, images, logo, mise en page) est la propriété de Rance Sales, sauf mention contraire. Toute reproduction sans accord écrit préalable est interdite.</p>
+<h2>Données personnelles</h2>
+<p>Les informations transmises par le formulaire de demande de devis (nom, société, e-mail, téléphone, message) servent uniquement à répondre à votre demande. Elles sont envoyées à notre équipe commerciale et ne sont pas cédées à des tiers. Vous pouvez demander leur accès, leur rectification ou leur suppression en écrivant à <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
+<h2>Cookies et mesure d'audience</h2>
+<p>Le site utilise Google Analytics pour mesurer sa fréquentation. Ce service n'est activé qu'après votre accord, que vous pouvez donner ou refuser via le bandeau cookies, et modifier à tout moment via le lien « Cookies » du pied de page.</p>
+</div></section>"""
+  else:
+    h = page_head(l, "Legal information", "Legal notice", "Publisher identity, hosting and how we use data on this site.")
+    h += f"""<section class="sec"><div class="wrap narrow prose">
+<h2>Publisher</h2>
+<ul>{rows([("Company name","Rance Sales"),("Legal form",L["forme"]),("Share capital",L["capital"]),("RCS / SIREN",f'{L["rcs"]} / {L["siren"]}'),("Registered office",L["siege"]),("E-mail",f'<a href="mailto:{EMAIL}">{EMAIL}</a>'),("Phone",f'<a href="tel:{TEL}">{TEL_H}</a>'),("Publication director",L["directeur"])])}</ul>
+<h2>Hosting</h2>
+<ul>{rows([("Host",L["hebergeur"]),("Host address",L["hebergeur_adresse"])])}</ul>
+<h2>Intellectual property</h2>
+<p>All content on this site (text, images, logo, layout) belongs to Rance Sales unless stated otherwise. Reproduction without prior written consent is prohibited.</p>
+<h2>Personal data</h2>
+<p>Information sent through the quote form (name, company, e-mail, phone, message) is used only to answer your request. It is sent to our sales team and not passed on to third parties. You can ask to access, correct or delete it by writing to <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
+<h2>Cookies and audience measurement</h2>
+<p>This site uses Google Analytics to measure traffic. It is enabled only with your consent, which you can give or refuse in the cookie banner and change at any time via the “Cookies” link in the footer.</p>
+</div></section>"""
+  return h, []
+
+PAGES = {"home":p_home,"products":p_products,"about":p_about,"contact":p_contact,"thanks":p_thanks,"legal":p_legal}
 META = {
  "home":{"fr":("Rance Sales | Négoce international de papier industriel et emballage","Papier graphique, papier d'emballage et carton (kraftliner, testliner, couché, GC1…) de papeteries européennes pour les industriels du monde entier. Devis rapide."),
          "en":("Rance Sales | International Industrial Paper and Packaging Trading","Graphic paper, packaging paper and board (kraftliner, testliner, coated, GC1…) from European paper mills for manufacturers worldwide. Request a quote.")},
@@ -265,6 +301,7 @@ META = {
  "contact":{"fr":("Demande de devis papier industriel | Rance Sales","Demandez un devis pour du papier industriel, des emballages ou des matières premières. E-mail commercial@rancesales.com, tél. +33 6 73 76 70 59."),
          "en":("Request a Quote for Industrial Paper | Rance Sales","Request a quote for industrial paper, packaging or raw materials. Email commercial@rancesales.com, phone +33 6 73 76 70 59.")},
  "thanks":{"fr":("Merci | Rance Sales","Votre demande de devis a bien été envoyée."),"en":("Thank you | Rance Sales","Your quote request has been sent.")},
+ "legal":{"fr":("Mentions légales | Rance Sales","Éditeur, hébergement et données personnelles du site Rance Sales."),"en":("Legal notice | Rance Sales","Publisher, hosting and personal data for the Rance Sales website.")},
 }
 
 ORG = {"@context":"https://schema.org","@type":"Organization","@id":SITE+"/#org","name":"Rance Sales","url":SITE+"/","logo":SITE+"/assets/logo.png",
@@ -340,8 +377,8 @@ def render(l, key, body, extra_ld):
 <div class="ft-brand">{LOGO_LIGHT}<p>{ui['foot_tag']}</p></div>
 <div><h2 class="ft-h">{ui['nav_label']}</h2><ul>{mk}</ul></div>
 <div><h2 class="ft-h">Contact</h2><ul><li><a href="mailto:{EMAIL}">{EMAIL}</a></li><li><a href="tel:{TEL}">{TEL_H}</a></li><li><a href="{wa_href(l)}" target="_blank" rel="noopener">WhatsApp</a></li><li>{ui['hours']}</li></ul></div>
-<div><h2 class="ft-h">Rance Sales</h2><ul><li><a href="{path('products',l)}">{dict(ui['nav'])['products']}</a></li><li><a href="{LI}" rel="noopener">LinkedIn</a></li><li><a href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_label']}</a></li></ul></div>
-</div><div class="wrap ft-bottom"><p>© 2024–2026 Rance Sales. {ui['rights']}{f' <button class="cookie-link" type="button" data-cookies>{ui["cookies"]}</button>' if GA_ID else ''}</p></div></footer>
+<div><h2 class="ft-h">Rance Sales</h2><ul><li><a href="{path('products',l)}">{dict(ui['nav'])['products']}</a></li><li><a href="{LI}" rel="noopener">LinkedIn</a></li><li><a href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_label']}</a></li><li><a href="{path('legal',l)}">{"Mentions légales" if l=="fr" else "Legal notice"}</a></li>{'<li><button class="cookie-link" type="button" data-cookies>Cookies</button></li>' if GA_ID else ''}</ul></div>
+</div><div class="wrap ft-bottom"><p>© 2024–2026 Rance Sales. {ui['rights']}</p></div></footer>
 <a class="wa-float" href="{wa_href(l)}" target="_blank" rel="noopener" aria-label="{"Écrire à Rance Sales sur WhatsApp" if l=="fr" else "Message Rance Sales on WhatsApp"}">{icon("wa","ico fill")}<span class="wa-tip" aria-hidden="true">{"Écrire sur WhatsApp" if l=="fr" else "Chat on WhatsApp"}</span></a>
 <script src="/assets/site.js" defer></script>
 </body>

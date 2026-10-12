@@ -8,6 +8,13 @@ LI = "https://www.linkedin.com/company/rance-sales"
 # La balise ne se charge qu'après accord du visiteur dans le bandeau cookies (règles CNIL).
 GA_ID = "G-GVYZ14ZW8T"
 
+# Mentions légales (obligatoires en France, LCEN art. 6). Les valeurs "À COMPLÉTER" doivent être remplies avant publication.
+LEGAL = {
+ "forme": "À COMPLÉTER", "capital": "À COMPLÉTER", "rcs": "À COMPLÉTER", "siren": "À COMPLÉTER",
+ "siege": "À COMPLÉTER", "directeur": "À COMPLÉTER",
+ "hebergeur": "Hostinger International Ltd.", "hebergeur_adresse": "À COMPLÉTER (vérifier sur hostinger.fr, mentions légales)",
+}
+
 # Gammes de papier et carton (grammages en g/m², livrés en bobines et en feuilles).
 # Chaque groupe : (titre FR, titre EN, grammage du groupe ou None, [(qualité FR, qualité EN, grammage ou None)])
 RANGES = [
