@@ -12,7 +12,7 @@ GA_ID = "G-GVYZ14ZW8T"
 LEGAL = {
  "forme": "SARL (société à responsabilité limitée)", "capital": "4 000 €", "rcs": "Rennes", "siren": "910 700 517",
  "siege": "5 allée de la Grande Treille, 35200 Rennes", "directeur": "Hakim Touabi, gérant",
- "hebergeur": "Hostinger International Ltd.", "hebergeur_adresse": "À COMPLÉTER (vérifier sur hostinger.fr, mentions légales)",
+ "hebergeur": "Hostinger International Ltd.", "hebergeur_adresse": "61 Lordou Vironos Street, 6023 Larnaca, Chypre",
 }
 
 # Gammes de papier et carton (grammages en g/m², livrés en bobines et en feuilles).
