@@ -4,6 +4,9 @@ TEL = "+33673767059"; TEL_H = "+33 6 73 76 70 59"
 WA = "https://wa.me/33673767059"  # même numéro, joignable sur WhatsApp
 WA_MSG = {"fr": "Bonjour Rance Sales, je souhaite un devis pour : ", "en": "Hello Rance Sales, I would like a quote for: "}
 LI = "https://www.linkedin.com/company/rance-sales"
+# Google Analytics 4 : ID de mesure (G-XXXXXXXXXX). Vide = pas de statistiques ni de bandeau cookies.
+# La balise ne se charge qu'après accord du visiteur dans le bandeau cookies (règles CNIL).
+GA_ID = "G-GVYZ14ZW8T"
 
 # Gammes de papier et carton (grammages en g/m², livrés en bobines et en feuilles).
 # Chaque groupe : (titre FR, titre EN, grammage du groupe ou None, [(qualité FR, qualité EN, grammage ou None)])
@@ -103,7 +106,7 @@ UI = {
   "cta":"Demander un devis","menu":"Menu","skip":"Aller au contenu",
   "foot_tag":"Négoce international de papier graphique, papier d'emballage et carton, de l'Europe au monde entier. Rennes, France.",
   "hours":"Du lundi au vendredi, de 8 h à 19 h (heure de Paris)",
-  "rights":"Tous droits réservés.","nav_label":"Navigation",
+  "rights":"Tous droits réservés.","nav_label":"Navigation","cookies":"Cookies",
   "breadcrumb_home":"Accueil",
  },
  "en": {
@@ -112,7 +115,7 @@ UI = {
   "cta":"Request a quote","menu":"Menu","skip":"Skip to content",
   "foot_tag":"International trading in graphic paper, packaging paper and board, from Europe to the world. Rennes, France.",
   "hours":"Monday to Friday, 8 am to 7 pm (Paris time)",
-  "rights":"All rights reserved.","nav_label":"Navigation",
+  "rights":"All rights reserved.","nav_label":"Navigation","cookies":"Cookies",
   "breadcrumb_home":"Home",
  },
 }
