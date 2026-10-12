@@ -10,8 +10,8 @@ GA_ID = "G-GVYZ14ZW8T"
 
 # Mentions légales (obligatoires en France, LCEN art. 6). Les valeurs "À COMPLÉTER" doivent être remplies avant publication.
 LEGAL = {
- "forme": "À COMPLÉTER", "capital": "À COMPLÉTER", "rcs": "À COMPLÉTER", "siren": "À COMPLÉTER",
- "siege": "À COMPLÉTER", "directeur": "À COMPLÉTER",
+ "forme": "SARL (société à responsabilité limitée)", "capital": "4 000 €", "rcs": "Rennes", "siren": "910 700 517",
+ "siege": "5 allée de la Grande Treille, 35200 Rennes", "directeur": "Hakim Touabi, gérant",
  "hebergeur": "Hostinger International Ltd.", "hebergeur_adresse": "À COMPLÉTER (vérifier sur hostinger.fr, mentions légales)",
 }
 
