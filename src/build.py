@@ -322,7 +322,7 @@ def render(l, key, body, extra_ld):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Sans+3:wght@400;600&display=swap">
 <link rel="stylesheet" href="/assets/site.css">
 <script>document.documentElement.classList.add('js')</script>
-{ldtxt}
+{GA_META}{ldtxt}
 </head>
 <body class="p-{key}">
 <a class="skip" href="#main">{ui['skip']}</a>
@@ -341,7 +341,7 @@ def render(l, key, body, extra_ld):
 <div><h2 class="ft-h">{ui['nav_label']}</h2><ul>{mk}</ul></div>
 <div><h2 class="ft-h">Contact</h2><ul><li><a href="mailto:{EMAIL}">{EMAIL}</a></li><li><a href="tel:{TEL}">{TEL_H}</a></li><li><a href="{wa_href(l)}" target="_blank" rel="noopener">WhatsApp</a></li><li>{ui['hours']}</li></ul></div>
 <div><h2 class="ft-h">Rance Sales</h2><ul><li><a href="{path('products',l)}">{dict(ui['nav'])['products']}</a></li><li><a href="{LI}" rel="noopener">LinkedIn</a></li><li><a href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_label']}</a></li></ul></div>
-</div><div class="wrap ft-bottom"><p>© 2024–2026 Rance Sales. {ui['rights']}</p></div></footer>
+</div><div class="wrap ft-bottom"><p>© 2024–2026 Rance Sales. {ui['rights']}{f' <button class="cookie-link" type="button" data-cookies>{ui["cookies"]}</button>' if GA_ID else ''}</p></div></footer>
 <a class="wa-float" href="{wa_href(l)}" target="_blank" rel="noopener" aria-label="{"Écrire à Rance Sales sur WhatsApp" if l=="fr" else "Message Rance Sales on WhatsApp"}">{icon("wa","ico fill")}<span class="wa-tip" aria-hidden="true">{"Écrire sur WhatsApp" if l=="fr" else "Chat on WhatsApp"}</span></a>
 <script src="/assets/site.js" defer></script>
 </body>
@@ -349,6 +349,9 @@ def render(l, key, body, extra_ld):
 '''
   d = os.path.join(OUT, self_p.strip("/")); os.makedirs(d, exist_ok=True)
   open(os.path.join(d,"index.html"),"w").write(doc)
+
+# Google Analytics : l'ID est lu par site.js, qui affiche le bandeau cookies et ne charge gtag.js qu'après accord.
+GA_META = f'<meta name="ga-id" content="{E(GA_ID)}">\n' if GA_ID else ""
 
 # Logo d'origine de Rance Sales : version sombre pour l'en-tête blanc, version claire pour le pied de page.
 LOGO = '<img class="logo" src="/assets/logo-rance-sales.png" alt="Rance Sales" width="346" height="86">'
@@ -361,6 +364,12 @@ for l in ["fr","en"]:
 
 # static files
 shutil.copytree(os.path.join(SRC,"static"), OUT, dirs_exist_ok=True)
+
+# page 404 : même balise Analytics que les autres pages
+if GA_ID:
+  p404 = os.path.join(OUT,"404.html"); t = open(p404).read()
+  t = t.replace("</head>", GA_META + "</head>").replace("</body>", '<script src="/assets/site.js" defer></script></body>')
+  open(p404,"w").write(t)
 
 # carte du monde aux couleurs du logo
 os.makedirs(os.path.join(OUT,"assets"), exist_ok=True)
