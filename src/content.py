@@ -6,7 +6,7 @@ WA_MSG = {"fr": "Bonjour Rance Sales, je souhaite un devis pour : ", "en": "Hell
 LI = "https://www.linkedin.com/company/rance-sales"
 # Google Analytics 4 : ID de mesure (G-XXXXXXXXXX). Vide = pas de statistiques ni de bandeau cookies.
 # La balise ne se charge qu'après accord du visiteur dans le bandeau cookies (règles CNIL).
-GA_ID = ""
+GA_ID = "G-GVYZ14ZW8T"
 
 # Gammes de papier et carton (grammages en g/m², livrés en bobines et en feuilles).
 # Chaque groupe : (titre FR, titre EN, grammage du groupe ou None, [(qualité FR, qualité EN, grammage ou None)])
