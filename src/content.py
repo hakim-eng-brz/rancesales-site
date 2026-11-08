@@ -129,3 +129,19 @@ UI = {
 
 # Palette reprise du logo (à ajuster avec le fichier du logo)
 PALETTE = {"ink":"#111513","land":"#1a201c","dot":"#5b635e","accent":"#7dc35e"}  # couleurs du logo ; carte en pointillés comme le globe
+
+# Pages qualité v1 (requêtes acheteurs). Chaque entrée : id gamme FR, libellé(s) FR exact(s) dans RANGES, (slug FR, slug EN).
+# Un libellé unique = une qualité. Une liste = une page qui regroupe plusieurs lignes (ex. LWC).
+GRADE_PAGES = [
+  ("papier-emballage", "Kraftliner brun ou écru", ("kraftliner", "kraftliner")),
+  ("papier-emballage", "Testliner", ("testliner", "testliner")),
+  ("papier-emballage", "Kraft blanchi", ("kraft-blanchi", "bleached-kraft")),
+  ("papier-emballage", "Papier sulfurisé blanchi ou non blanchi", ("papier-sulfurise", "greaseproof-paper")),
+  ("papier-graphique", "Offset, écriture et copie", ("offset", "offset")),
+  ("papier-graphique", "Couché brillant, satiné ou mat", ("papier-couche", "coated-paper")),
+  ("papier-graphique", ["LWC offset brillant, satiné ou mat", "LWC héliogravure brillant"], ("lwc", "lwc")),
+  ("carton", "GC1 duplex couché dos blanc", ("gc1", "gc1")),
+  ("carton", "GC2 duplex couché dos manille", ("gc2", "gc2")),
+  ("carton", "GD2 duplex couché dos gris", ("gd2", "gd2")),
+  ("carton", "Carton SBS (blanchi massif)", ("sbs", "sbs")),
+]

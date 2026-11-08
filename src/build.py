@@ -18,6 +18,57 @@ PATHS = {
 }
 def path(key, l): return PATHS[key][0 if l=="fr" else 1]
 
+def range_by_id(rid):
+  for r in RANGES:
+    if r["id"][0]==rid: return r
+  raise KeyError(rid)
+
+def range_path(r, l):
+  i = 0 if l=="fr" else 1
+  return ("/" if l=="fr" else "/en/") + r["id"][i] + "/"
+
+def grade_path(g, l):
+  r = range_by_id(g["range_id"])
+  slug = g["slugs"][0 if l=="fr" else 1]
+  return range_path(r, l) + slug + "/"
+
+def _labels(match):
+  return match if isinstance(match, list) else [match]
+
+def resolve_grade(entry):
+  """Construit la fiche qualité à partir de GRADE_PAGES + RANGES (faits confirmés uniquement)."""
+  rid, match, slugs = entry
+  r = range_by_id(rid)
+  wanted = set(_labels(match))
+  found, group_title, group_gsm = [], None, None
+  for gfr, gen, ggsm, grades in r["groups"]:
+    hits = [g for g in grades if g[0] in wanted]
+    if hits:
+      found.extend(hits)
+      group_title = (gfr, gen)
+      group_gsm = ggsm
+  if len(found) != len(wanted):
+    missing = wanted - {g[0] for g in found}
+    raise ValueError(f"GRADE_PAGES: introuvable dans {rid}: {missing}")
+  # grammage propre à la qualité uniquement (pas le bandeau du groupe : GC1 n'a pas 150–900 en propre)
+  own_vals = [g[2] for g in found if g[2]]
+  gsm_v = own_vals[0] if own_vals and len(set(own_vals)) == 1 else None
+  title_fr = found[0][0] if len(found)==1 else ("LWC" if all(g[0].startswith("LWC") for g in found) else found[0][0])
+  title_en = found[0][1] if len(found)==1 else ("LWC" if all(g[1].startswith("LWC") for g in found) else found[0][1])
+  return {
+    "range_id": rid, "range": r, "slugs": slugs, "match": match,
+    "grades": found, "group_title": group_title, "group_gsm": group_gsm,
+    "gsm": gsm_v, "own_gsm": gsm_v is not None,
+    "title": (title_fr, title_en),
+  }
+
+GRADES = [resolve_grade(e) for e in GRADE_PAGES]
+GRADE_BY_FR = {lab: g for g in GRADES for lab in _labels(g["match"])}
+
+def grade_href(fr_label, l):
+  g = GRADE_BY_FR.get(fr_label)
+  return grade_path(g, l) if g else None
+
 ICONS = {
  "paper":'<path d="M4 7a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/><path d="M7 4h11a3 3 0 0 1 0 6H7"/><path d="M10 7h11v10H8"/><path d="M4 7v10a3 3 0 0 0 6 0"/>',
  "box":'<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
@@ -84,27 +135,51 @@ def marquee(l):
 
 def gsm(v, l): return f'{v} g/m²' if l=="fr" else f'{v.replace(" ",",")} g/m²'
 
-def range_anchor(r, l): return path("products",l) + "#" + r["id"][0 if l=="fr" else 1]
+def range_anchor(r, l): return range_path(r, l)
+
+def crumbs_html(items):
+  """Fil d'Ariane visible. items = [(label, href|None), ...] — le dernier est la page courante."""
+  parts=[]
+  for label, href in items:
+    if href: parts.append(f'<li><a href="{href}">{E(label)}</a></li>')
+    else: parts.append(f'<li><span aria-current="page">{E(label)}</span></li>')
+  return f'<ol class="crumbs" aria-label="Fil d\'Ariane">{"".join(parts)}</ol>' if items[0][0]!="Home" else f'<ol class="crumbs" aria-label="Breadcrumb">{"".join(parts)}</ol>'
+
+def grade_label_html(g, l):
+  i = 0 if l=="fr" else 1
+  href = grade_href(g[0], l)
+  name = E(g[i])
+  return f'<a href="{href}">{name}</a>' if href else f'<span>{name}</span>'
 
 def range_cards(l):
   i = 0 if l=="fr" else 1; fr = l=="fr"
   out = []
   for n,r in enumerate(RANGES):
     tags = "".join(f'<li>{E(k)}</li>' for k in (r["key"] if fr else r["key_en"]))
-    out.append(f'''<a class="card prod rcard" href="{range_anchor(r,l)}" data-reveal style="--i:{n}">{icon(r["icon"],"ico big")}<h3>{E(r["n"][i])}</h3>
+    out.append(f'''<a class="card prod rcard" href="{range_path(r,l)}" data-reveal style="--i:{n}">{icon(r["icon"],"ico big")}<h3>{E(r["n"][i])}</h3>
 <p class="span">{gsm(r["span"],l)} · {"bobines et feuilles" if fr else "reels and sheets"}</p><p>{E(r["intro"][i])}</p><ul class="tags">{tags}</ul>
 <span class="more">{"Voir les qualités" if fr else "See all grades"}{icon("arrow","bi")}</span></a>''')
   return '<div class="grid g3">' + "".join(out) + '</div>'
 
-def range_section(r, n, l):
+def range_nav_html(l, current_id=None):
+  fr = l=="fr"; i = 0 if fr else 1
+  links=[]
+  for r in RANGES:
+    cur = ' aria-current="page"' if current_id==r["id"][0] else ""
+    links.append(f'<a href="{range_path(r,l)}"{cur}>{icon(r["icon"],"ico")}<b>{E(r["n"][i])}</b><small>{gsm(r["span"],l)}</small></a>')
+  return f'<nav class="range-nav" aria-label="{"Gammes" if fr else "Ranges"}"><div class="wrap">{"".join(links)}</div></nav>'
+
+def range_section(r, n, l, link_title=True):
   i = 0 if l=="fr" else 1; fr = l=="fr"
   cards = []
   for j,(tfr,ten,ggsm,grades) in enumerate(r["groups"]):
-    rows = "".join(f'<li><span>{E(g[i])}</span>' + (f'<span class="gsm">{gsm(g[2],l)}</span>' if g[2] else '') + '</li>' for g in grades)
+    rows = "".join(f'<li><span>{grade_label_html(g,l)}</span>' + (f'<span class="gsm">{gsm(g[2],l)}</span>' if g[2] else '') + '</li>' for g in grades)
     head = f'<p class="gsm-all">{gsm(ggsm,l)}</p>' if ggsm else ''
     cards.append(f'<article class="gcard" data-reveal style="--i:{j%3}"><h3>{E(tfr if fr else ten)}</h3>{head}<ul class="spec">{rows}</ul></article>')
+  title = E(r["n"][i])
+  h2 = f'<h2><a href="{range_path(r,l)}">{title}</a></h2>' if link_title else f'<h2>{title}</h2>'
   return f'''<section class="sec range{" alt" if n%2 else ""}" id="{r["id"][i]}"><div class="wrap">
-<div class="range-head" data-reveal><div><p class="eyebrow">{"Gamme" if fr else "Range"} {n+1:02d}</p><h2>{E(r["n"][i])}</h2><p class="lead-sm">{E(r["intro"][i])}</p></div>
+<div class="range-head" data-reveal><div><p class="eyebrow">{"Gamme" if fr else "Range"} {n+1:02d}</p>{h2}<p class="lead-sm">{E(r["intro"][i])}</p></div>
 <ul class="chips"><li>{icon(r["icon"],"bi")}{gsm(r["span"],l)}</li><li>{"Bobines et feuilles" if fr else "Reels and sheets"}</li></ul></div>
 <div class="grid g3 grades">{"".join(cards)}</div>
 </div></section>'''
@@ -174,13 +249,12 @@ def page_head(l, eyebrow, h1, lead, extra=""):
 <p class="eyebrow" data-reveal>{E(eyebrow)}</p><h1 data-reveal style="--i:1">{E(h1)}</h1><p class="lead" data-reveal style="--i:2">{E(lead)}</p>{extra}</div></div></section>"""
 
 def p_products(l):
-  fr = l=="fr"; i = 0 if fr else 1
+  fr = l=="fr"
   h = page_head(l, "Produits" if fr else "Products",
       "Papier graphique, papier d'emballage et carton" if fr else "Graphic paper, packaging paper and board",
       "Plus de 50 qualités de papier et de carton, de 20 à 1 500 g/m², en bobines et en feuilles, sourcées auprès de papeteries européennes." if fr else "More than 50 paper and board grades, from 20 to 1,500 g/m², in reels and sheets, sourced from European paper mills.",
       f'<div class="actions" data-reveal style="--i:3">{btn(path("contact",l)+"#devis","Demander un devis" if fr else "Request a quote","btn accent")}</div>')
-  nav = "".join(f'<a href="#{r["id"][i]}">{icon(r["icon"],"ico")}<b>{E(r["n"][i])}</b><small>{gsm(r["span"],l)}</small></a>' for r in RANGES)
-  h += f'<nav class="range-nav" aria-label="{"Gammes" if fr else "Ranges"}"><div class="wrap">{nav}</div></nav>'
+  h += range_nav_html(l)
   h += "".join(range_section(r, n, l) for n,r in enumerate(RANGES))
   h += f"""<section class="sec{" alt" if len(RANGES)%2 else ""}"><div class="wrap">
 <div class="sec-head" data-reveal><p class="eyebrow">{"Au-delà du papier" if fr else "Beyond paper"}</p><h2>{"Emballage, machines et services" if fr else "Packaging, machinery and services"}</h2>
@@ -193,6 +267,128 @@ def p_products(l):
 </div></section>
 {cta_band(l)}"""
   return h, [catalog_ld(l)]
+
+def p_range(l, r):
+  fr = l=="fr"; i = 0 if fr else 1
+  n = next(idx for idx,x in enumerate(RANGES) if x["id"][0]==r["id"][0])
+  lead = r["intro"][i] + " " + (f"De {r['span']} g/m², en bobines et en feuilles, sourcés auprès de papeteries européennes." if fr else f"From {r['span'].replace(' ',',')} g/m², in reels and sheets, sourced from European paper mills.")
+  h = page_head(l, "Produits" if fr else "Products", r["n"][i], lead,
+      f'<div class="actions" data-reveal style="--i:3">{btn(path("contact",l)+"#devis","Demander un devis" if fr else "Request a quote","btn accent")}</div>')
+  h += f'<div class="wrap" style="padding-top:28px">{crumbs_html([("Accueil" if fr else "Home", path("home",l)), ("Produits" if fr else "Products", path("products",l)), (r["n"][i], None)])}</div>'
+  h += range_nav_html(l, r["id"][0])
+  who = ("Fabricants d'emballage, imprimeurs et transformateurs" if fr else "Packaging manufacturers, printers and converters")
+  who_p = ("Vous indiquez la qualité, le grammage, le volume et le pays de livraison. Nous identifions la papeterie européenne adaptée et suivons l'expédition jusqu'à votre usine." if fr else "You tell us the grade, grammage, volume and delivery country. We identify the right European paper mill and follow the shipment to your plant.")
+  h += f'''<section class="sec"><div class="wrap">
+<div class="range-head" data-reveal><div><p class="eyebrow">{"Pour qui" if fr else "Who it's for"}</p><h2>{E(who)}</h2><p class="lead-sm">{E(who_p)}</p></div>
+<ul class="chips"><li>{icon(r["icon"],"bi")}{gsm(r["span"],l)}</li><li>{"Bobines et feuilles" if fr else "Reels and sheets"}</li></ul></div>
+</div></section>'''
+  # réutiliser la grille qualités sans retitrer la gamme
+  cards=[]
+  for j,(tfr,ten,ggsm,grades) in enumerate(r["groups"]):
+    rows = "".join(f'<li><span>{grade_label_html(g,l)}</span>' + (f'<span class="gsm">{gsm(g[2],l)}</span>' if g[2] else '') + '</li>' for g in grades)
+    head = f'<p class="gsm-all">{gsm(ggsm,l)}</p>' if ggsm else ''
+    cards.append(f'<article class="gcard" data-reveal style="--i:{j%3}"><h3>{E(tfr if fr else ten)}</h3>{head}<ul class="spec">{rows}</ul></article>')
+  h += f'<section class="sec alt range" id="{r["id"][i]}"><div class="wrap"><div class="grid g3 grades">{"".join(cards)}</div></div></section>'
+  h += cta_band(l)
+  title = f'{r["n"][i]} | Rance Sales'
+  desc = (f'{r["n"][i]} : {r["intro"][i]} {r["span"]} g/m², bobines et feuilles. Devis.' if fr
+          else f'{r["n"][i]}: {r["intro"][i]} {r["span"].replace(" ",",")} g/m², reels and sheets. Request a quote.')
+  crumbs = [
+    {"@type":"ListItem","position":1,"name":"Accueil" if fr else "Home","item":SITE+path("home",l)},
+    {"@type":"ListItem","position":2,"name":"Produits" if fr else "Products","item":SITE+path("products",l)},
+    {"@type":"ListItem","position":3,"name":r["n"][i],"item":SITE+range_path(r,l)},
+  ]
+  return h, [], {
+    "paths": (range_path(r,"fr"), range_path(r,"en")),
+    "meta": (title, desc),
+    "crumbs_ld": crumbs,
+    "nav_key": "products",
+    "body_class": "products",
+  }
+
+def grade_faq(g, l):
+  fr = l=="fr"; i = 0 if fr else 1
+  name = g["title"][i]
+  own_gsm = bool(g.get("own_gsm"))
+  if fr:
+    q1 = (f"Quels grammages pour {name} ?",
+          f"Nous proposons {name} en {gsm(g['gsm'], l)}, en bobines et en feuilles. Indiquez le grammage et le volume dans votre demande de devis.") if own_gsm else \
+         (f"Quels grammages pour {name} ?",
+          f"Indiquez le grammage et le volume dans votre demande de devis. {name} est disponible en bobines et en feuilles.")
+    return [
+      q1,
+      (f"D'où vient {name} ?", f"Nous sourçons {name} auprès de papeteries européennes et sélectionnons la qualité adaptée à votre production."),
+      (f"Comment demander un devis pour {name} ?", f"Via le formulaire de demande de devis, par e-mail à {EMAIL}, par téléphone ou sur WhatsApp au {TEL_H}, du lundi au vendredi de 8 h à 19 h (heure de Paris)."),
+    ]
+  if own_gsm:
+    q1 = (f"Which grammages for {name}?", f"We supply {name} at {gsm(g['gsm'], l)}, in reels and sheets. Tell us the grammage and volume in your quote request.")
+  else:
+    q1 = (f"Which grammages for {name}?", f"Tell us the grammage and volume in your quote request. {name} is available in reels and sheets.")
+  return [
+    q1,
+    (f"Where does your {name} come from?", f"We source {name} from European paper mills and select the grade that fits your production."),
+    (f"How do I request a quote for {name}?", f"Use the quote request form, email {EMAIL}, or call or WhatsApp {TEL_H}, Monday to Friday, 8 am to 7 pm (Paris time)."),
+  ]
+
+def p_grade(l, g):
+  fr = l=="fr"; i = 0 if fr else 1
+  r = g["range"]; name = g["title"][i]
+  gsm_txt = gsm(g["gsm"], l) if g["gsm"] else ""
+  formats = "bobines et feuilles" if fr else "reels and sheets"
+  lead_bits = [x for x in [gsm_txt, formats] if x]
+  lead = " · ".join(lead_bits) + ". "
+  if len(g["grades"])>1:
+    lines = ", ".join(x[i] for x in g["grades"])
+    lead += (f"{lines}. Sourcé auprès de papeteries européennes." if fr else f"{lines}. Sourced from European paper mills.")
+  else:
+    lead += (f"Qualité de la gamme {r['n'][i].lower()}, sourcée auprès de papeteries européennes." if fr
+             else f"A grade in the {r['n'][i].lower()} range, sourced from European paper mills.")
+  h = page_head(l, r["n"][i], name, lead,
+      f'<div class="actions" data-reveal style="--i:3">{btn(path("contact",l)+"#devis",("Demander un devis" if fr else "Request a quote"),"btn accent")}{btn(range_path(r,l),("Voir la gamme" if fr else "See the range"),"btn ghost-light")}</div>')
+  h += f'<section class="sec"><div class="wrap narrow">{crumbs_html([("Accueil" if fr else "Home", path("home",l)), ("Produits" if fr else "Products", path("products",l)), (r["n"][i], range_path(r,l)), (name, None)])}'
+  facts = []
+  if g["gsm"]: facts.append(("Grammage" if fr else "Grammage", gsm(g["gsm"], l)))
+  facts.append(("Formats" if fr else "Formats", "Bobines et feuilles" if fr else "Reels and sheets"))
+  facts.append(("Gamme" if fr else "Range", r["n"][i]))
+  h += '<dl class="grade-facts">' + "".join(f'<div><dt>{E(k)}</dt><dd>{E(v)}</dd></div>' for k,v in facts) + '</dl>'
+  intro = r["intro"][i].rstrip(".")
+  body = (f'{E(name)} fait partie de la gamme {E(r["n"][i])} de Rance Sales ({E(intro)}). '
+          f'Livraison en bobines et en feuilles, avec suivi export jusqu\'à votre usine.' if fr else
+          f'{E(name)} is part of the Rance Sales {E(r["n"][i])} range ({E(intro)}). '
+          f'Supplied in reels and sheets, with export follow-up to your plant.')
+  if len(g["grades"])>1:
+    body += (" Qualités : " if fr else " Grades: ") + ", ".join(E(x[i]) + (f' ({gsm(x[2],l)})' if x[2] else '') for x in g["grades"]) + "."
+  h += f'<p class="lead-sm">{body}</p></div></section>'
+  faqs = grade_faq(g, l)
+  h += f'''<section class="sec alt"><div class="wrap narrow">
+<div class="sec-head" data-reveal><p class="eyebrow">FAQ</p><h2>{"Questions fréquentes" if fr else "Frequently asked questions"}</h2></div>
+{faq_html(faqs)}
+</div></section>'''
+  sibs = [x for x in GRADES if x["range_id"]==g["range_id"] and x is not g]
+  if sibs:
+    links = "".join(f'<li><a href="{grade_path(x,l)}">{E(x["title"][i])}</a></li>' for x in sibs)
+    links += f'<li><a href="{range_path(r,l)}">{"Toute la gamme" if fr else "Full range"}</a></li>'
+    h += f'''<section class="sec"><div class="wrap">
+<div class="sec-head" data-reveal><p class="eyebrow">{"Dans la même gamme" if fr else "In the same range"}</p><h2>{E(r["n"][i])}</h2></div>
+<ul class="sibling-list">{links}</ul>
+</div></section>'''
+  h += cta_band(l)
+  title = f'{name} | Rance Sales'
+  desc = (f'{name}{" · "+gsm_txt if gsm_txt else ""} · bobines et feuilles, papeteries européennes. Demandez un devis à Rance Sales.' if fr
+          else f'{name}{" · "+gsm_txt if gsm_txt else ""} · reels and sheets from European paper mills. Request a quote from Rance Sales.')
+  crumbs = [
+    {"@type":"ListItem","position":1,"name":"Accueil" if fr else "Home","item":SITE+path("home",l)},
+    {"@type":"ListItem","position":2,"name":"Produits" if fr else "Products","item":SITE+path("products",l)},
+    {"@type":"ListItem","position":3,"name":r["n"][i],"item":SITE+range_path(r,l)},
+    {"@type":"ListItem","position":4,"name":name,"item":SITE+grade_path(g,l)},
+  ]
+  return h, [faq_ld(faqs)], {
+    "paths": (grade_path(g,"fr"), grade_path(g,"en")),
+    "meta": (title, desc),
+    "crumbs_ld": crumbs,
+    "nav_key": "products",
+    "body_class": "products",
+  }
 
 def p_about(l):
   fr = l=="fr"
@@ -212,8 +408,9 @@ def p_about(l):
   return h, []
 
 def p_contact(l):
-  fr = l=="fr"
-  popt = "".join(f'<option>{E(t)}</option>' for t in [r["n"][0 if fr else 1] for r in RANGES] + [SERVICES[l][0][1], SERVICES[l][1][1], "Autre" if fr else "Other"])
+  fr = l=="fr"; i = 0 if fr else 1
+  opts = [r["n"][i] for r in RANGES] + [g["title"][i] for g in GRADES] + [SERVICES[l][0][1], SERVICES[l][1][1], "Autre" if fr else "Other"]
+  popt = "".join(f'<option>{E(t)}</option>' for t in opts)
   L = (lambda a,b: a if fr else b)
   form = f"""<form class="quote" id="devis" action="/contact.php" method="post" data-reveal>
 <input type="hidden" name="lang" value="{l}">
@@ -306,23 +503,37 @@ META = {
  "legal":{"fr":("Mentions légales | Rance Sales","Éditeur, hébergement et données personnelles du site Rance Sales."),"en":("Legal notice | Rance Sales","Publisher, hosting and personal data for the Rance Sales website.")},
 }
 
-ORG = {"@context":"https://schema.org","@type":"Organization","@id":SITE+"/#org","name":"Rance Sales","url":SITE+"/","logo":SITE+"/assets/logo.png",
- "description":"Négoce international de papier industriel, matières premières et emballages entre papeteries européennes et industriels du monde entier.",
- "email":EMAIL,"telephone":TEL,"address":{"@type":"PostalAddress","addressLocality":"Rennes","addressCountry":"FR"},
- "areaServed":"Worldwide","sameAs":[LI],
- "contactPoint":{"@type":"ContactPoint","contactType":"sales","email":EMAIL,"telephone":TEL,"availableLanguage":["fr","en"],
-   "hoursAvailable":{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"}}}
+def org_ld(l):
+  fr = l=="fr"
+  # Siège déjà public dans les mentions légales
+  street, rest = LEGAL["siege"].split(",", 1)
+  postal, city = rest.strip().split(" ", 1)
+  return {"@context":"https://schema.org","@type":"Organization","@id":SITE+"/#org","name":"Rance Sales","url":SITE+"/","logo":SITE+"/assets/logo.png",
+   "description":("Négoce international de papier industriel, matières premières et emballages entre papeteries européennes et industriels du monde entier." if fr
+                  else "International trading in industrial paper, raw materials and packaging between European paper mills and manufacturers worldwide."),
+   "email":EMAIL,"telephone":TEL,
+   "address":{"@type":"PostalAddress","streetAddress":street.strip(),"postalCode":postal,"addressLocality":city.strip(),"addressCountry":"FR"},
+   "areaServed":"Worldwide","sameAs":[LI],
+   "contactPoint":{"@type":"ContactPoint","contactType":"sales","email":EMAIL,"telephone":TEL,"availableLanguage":["fr","en"],
+     "hoursAvailable":{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"}}}
 
 def nav_html(l, key):
   ui = UI[l]
   return "".join(f'<a href="{path(k,l)}"{" aria-current=\"page\"" if key==k else ""}>{label}</a>' for k,label in ui["nav"])
 
-def render(l, key, body, extra_ld):
+def render(l, key, body, extra_ld, opts=None):
   ui = UI[l]
-  title, desc = META[key][l]
-  fr_p, en_p = PATHS[key]; self_p = path(key,l); other_p = en_p if l=="fr" else fr_p
-  ld = [ORG]
+  opts = opts or {}
+  title, desc = opts.get("meta") or META[key][l]
+  fr_p, en_p = opts.get("paths") or PATHS[key]
+  self_p = fr_p if l=="fr" else en_p
+  other_p = en_p if l=="fr" else fr_p
+  nav_key = opts.get("nav_key", key)
+  body_class = opts.get("body_class", key)
+  ld = [org_ld(l)]
   if key=="home": ld.append({"@context":"https://schema.org","@type":"WebSite","@id":SITE+"/#site","name":"Rance Sales","url":SITE+"/","inLanguage":["fr","en"],"publisher":{"@id":SITE+"/#org"}})
+  elif opts.get("crumbs_ld"):
+    ld.append({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":opts["crumbs_ld"]})
   else:
     crumbs=[{"@type":"ListItem","position":1,"name":ui["breadcrumb_home"],"item":SITE+path("home",l)}]
     crumbs.append({"@type":"ListItem","position":len(crumbs)+1,"name":title.split(" | ")[0],"item":SITE+self_p})
@@ -330,10 +541,12 @@ def render(l, key, body, extra_ld):
   ld += extra_ld
   ldtxt = "\n".join(f'<script type="application/ld+json">{json.dumps(x,ensure_ascii=False)}</script>' for x in ld)
   robots = "noindex, follow" if key=="thanks" else "index, follow, max-image-preview:large"
+  alt_loc = "en_GB" if l=="fr" else "fr_FR"
   alt = "" if key=="thanks" else f'''<link rel="alternate" hreflang="fr" href="{SITE}{fr_p}">
 <link rel="alternate" hreflang="en" href="{SITE}{en_p}">
 <link rel="alternate" hreflang="x-default" href="{SITE}{fr_p}">'''
   mk = "".join(f'<li><a href="{path(k,l)}">{label}</a></li>' for k,label in ui["nav"])
+  ranges_ft = "".join(f'<li><a href="{range_path(r,l)}">{E(r["n"][0 if l=="fr" else 1])}</a></li>' for r in RANGES)
   doc = f'''<!doctype html>
 <html lang="{l}">
 <head>
@@ -348,10 +561,14 @@ def render(l, key, body, extra_ld):
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Rance Sales">
 <meta property="og:locale" content="{ui['locale']}">
+<meta property="og:locale:alternate" content="{alt_loc}">
 <meta property="og:title" content="{E(title)}">
 <meta property="og:description" content="{E(desc)}">
 <meta property="og:url" content="{SITE}{self_p}">
 <meta property="og:image" content="{SITE}/assets/og-{l}.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{E(title)}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -363,12 +580,12 @@ def render(l, key, body, extra_ld):
 <script>document.documentElement.classList.add('js')</script>
 {GA_META}{ldtxt}
 </head>
-<body class="p-{key}">
+<body class="p-{body_class}">
 <a class="skip" href="#main">{ui['skip']}</a>
 <header class="site-head"><div class="wrap hd">
 <a class="brand" href="{path('home',l)}">{LOGO}</a>
 <button class="burger" type="button" aria-expanded="false" aria-controls="nav"><span></span><span></span><span class="sr">{ui['menu']}</span></button>
-<nav id="nav" aria-label="{'Navigation principale' if l=='fr' else 'Main navigation'}">{nav_html(l,key)}
+<nav id="nav" aria-label="{'Navigation principale' if l=='fr' else 'Main navigation'}">{nav_html(l,nav_key)}
 <a class="lang" href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_short']}<span class="sr"> {ui['other_label']}</span></a>
 <a class="btn accent sm" href="{path('contact',l)}#devis"><span>{ui['cta']}</span></a></nav>
 </div></header>
@@ -379,14 +596,15 @@ def render(l, key, body, extra_ld):
 <div class="ft-brand">{LOGO_LIGHT}<p>{ui['foot_tag']}</p></div>
 <div><h2 class="ft-h">{ui['nav_label']}</h2><ul>{mk}</ul></div>
 <div><h2 class="ft-h">Contact</h2><ul><li><a href="mailto:{EMAIL}">{EMAIL}</a></li><li><a href="tel:{TEL}">{TEL_H}</a></li><li><a href="{wa_href(l)}" target="_blank" rel="noopener">WhatsApp</a></li><li>{ui['hours']}</li></ul></div>
-<div><h2 class="ft-h">Rance Sales</h2><ul><li><a href="{path('products',l)}">{dict(ui['nav'])['products']}</a></li><li><a href="{LI}" rel="noopener">LinkedIn</a></li><li><a href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_label']}</a></li><li><a href="{path('legal',l)}">{"Mentions légales" if l=="fr" else "Legal notice"}</a></li>{'<li><button class="cookie-link" type="button" data-cookies>Cookies</button></li>' if GA_ID else ''}</ul></div>
+<div><h2 class="ft-h">{"Gammes" if l=="fr" else "Ranges"}</h2><ul>{ranges_ft}<li><a href="{LI}" rel="noopener">LinkedIn</a></li><li><a href="{other_p}" hreflang="{ui['other']}" lang="{ui['other']}">{ui['other_label']}</a></li><li><a href="{path('legal',l)}">{"Mentions légales" if l=="fr" else "Legal notice"}</a></li>{'<li><button class="cookie-link" type="button" data-cookies>Cookies</button></li>' if GA_ID else ''}</ul></div>
 </div><div class="wrap ft-bottom"><p>© 2024–2026 Rance Sales. {ui['rights']}</p></div></footer>
 <a class="wa-float" href="{wa_href(l)}" target="_blank" rel="noopener" aria-label="{"Écrire à Rance Sales sur WhatsApp" if l=="fr" else "Message Rance Sales on WhatsApp"}">{icon("wa","ico fill")}<span class="wa-tip" aria-hidden="true">{"Écrire sur WhatsApp" if l=="fr" else "Chat on WhatsApp"}</span></a>
 <script src="/assets/site.js" defer></script>
 </body>
 </html>
 '''
-  d = os.path.join(OUT, self_p.strip("/")); os.makedirs(d, exist_ok=True)
+  d = os.path.join(OUT, self_p.strip("/")) if self_p.strip("/") else OUT
+  os.makedirs(d, exist_ok=True)
   open(os.path.join(d,"index.html"),"w").write(doc)
 
 # Google Analytics : l'ID est lu par site.js, qui affiche le bandeau cookies et ne charge gtag.js qu'après accord.
@@ -400,6 +618,10 @@ os.makedirs(OUT, exist_ok=True)
 for l in ["fr","en"]:
   for k,fn in PAGES.items():
     b, ld = fn(l); render(l,k,b,ld)
+  for r in RANGES:
+    b, ld, opts = p_range(l, r); render(l, "range", b, ld, opts)
+  for g in GRADES:
+    b, ld, opts = p_grade(l, g); render(l, "grade", b, ld, opts)
 
 # static files
 shutil.copytree(os.path.join(SRC,"static"), OUT, dirs_exist_ok=True)
@@ -414,12 +636,19 @@ if GA_ID:
 os.makedirs(os.path.join(OUT,"assets"), exist_ok=True)
 open(os.path.join(OUT,"assets","world.svg"),"w").write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WORLD["W"]} {WORLD["H"]}"><defs><path id="l" d="{WORLD["land"]}"/><pattern id="d" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.4" fill="{PALETTE["dot"]}"/></pattern></defs><use href="#l" fill="{PALETTE["land"]}"/><use href="#l" fill="url(#d)"/></svg>')
 
-# sitemap
+def sitemap_entry(f, e, pr):
+  return f'<url><loc>{SITE}{f}</loc><xhtml:link rel="alternate" hreflang="fr" href="{SITE}{f}"/><xhtml:link rel="alternate" hreflang="en" href="{SITE}{e}"/><xhtml:link rel="alternate" hreflang="x-default" href="{SITE}{f}"/><priority>{pr}</priority></url>', \
+         f'<url><loc>{SITE}{e}</loc><xhtml:link rel="alternate" hreflang="fr" href="{SITE}{f}"/><xhtml:link rel="alternate" hreflang="en" href="{SITE}{e}"/><xhtml:link rel="alternate" hreflang="x-default" href="{SITE}{f}"/><priority>{pr}</priority></url>'
+
+# sitemap — priorités : home 1.0, contact 0.9, hub 0.8, gammes 0.7, qualités 0.6, about 0.5, legal 0.2
+prio = {"home":"1.0","contact":"0.9","products":"0.8","about":"0.5","legal":"0.2"}
 urls=[]
 for k,(f,e) in PATHS.items():
   if k=="thanks": continue
-  pr = "1.0" if k=="home" else ("0.9" if k=="contact" else "0.8")
-  for loc in (f,e):
-    urls.append(f'<url><loc>{SITE}{loc}</loc><xhtml:link rel="alternate" hreflang="fr" href="{SITE}{f}"/><xhtml:link rel="alternate" hreflang="en" href="{SITE}{e}"/><xhtml:link rel="alternate" hreflang="x-default" href="{SITE}{f}"/><priority>{pr}</priority></url>')
+  urls.extend(sitemap_entry(f, e, prio.get(k, "0.5")))
+for r in RANGES:
+  urls.extend(sitemap_entry(range_path(r,"fr"), range_path(r,"en"), "0.7"))
+for g in GRADES:
+  urls.extend(sitemap_entry(grade_path(g,"fr"), grade_path(g,"en"), "0.6"))
 open(os.path.join(OUT,"sitemap.xml"),"w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'+"\n".join(urls)+"\n</urlset>\n")
 print("built", sum(len(fs) for _,_,fs in os.walk(OUT)), "files")
